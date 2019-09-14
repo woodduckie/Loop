@@ -105,7 +105,7 @@ class InsulinModelSettingsViewController: ChartsTableViewController, Identifiabl
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        tableView.rowHeight = UITableViewAutomaticDimension
+        tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 91
     }
 
@@ -151,7 +151,7 @@ class InsulinModelSettingsViewController: ChartsTableViewController, Identifiabl
     private let insulinModelChart = InsulinModelChart()
 
     override func createChartsManager() -> ChartsManager {
-        return ChartsManager(colors: .default, settings: .default, charts: [insulinModelChart])
+        return ChartsManager(colors: .default, settings: .default, charts: [insulinModelChart], traitCollection: traitCollection)
     }
 
     override func reloadData(animated: Bool = true) {

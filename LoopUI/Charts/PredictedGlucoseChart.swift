@@ -37,6 +37,13 @@ public class PredictedGlucoseChart: GlucoseChart, ChartProviding {
         }
     }
 
+    public var scheduleOverride: TemporaryScheduleOverride? {
+        didSet {
+            targetOverridePoints = []
+            targetOverrideDurationPoints = []
+        }
+    }
+
     private var targetGlucosePoints: [ChartPoint] = []
 
     private var targetOverridePoints: [ChartPoint] = []
@@ -66,12 +73,18 @@ extension PredictedGlucoseChart {
         glucoseChartCache = nil
     }
 
-    public func generate(withFrame frame: CGRect, xAxisModel: ChartAxisModel, xAxisValues: [ChartAxisValue], axisLabelSettings: ChartLabelSettings, guideLinesLayerSettings: ChartGuideLinesLayerSettings, colors: ChartColorPalette, chartSettings: ChartSettings, labelsWidthY: CGFloat, gestureRecognizer: UIGestureRecognizer?) -> Chart
+    public func generate(withFrame frame: CGRect, xAxisModel: ChartAxisModel, xAxisValues: [ChartAxisValue], axisLabelSettings: ChartLabelSettings, guideLinesLayerSettings: ChartGuideLinesLayerSettings, colors: ChartColorPalette, chartSettings: ChartSettings, labelsWidthY: CGFloat, gestureRecognizer: UIGestureRecognizer?, traitCollection: UITraitCollection) -> Chart
     {
         if targetGlucosePoints.isEmpty, xAxisValues.count > 1, let schedule = targetGlucoseSchedule {
             targetGlucosePoints = ChartPoint.pointsForGlucoseRangeSchedule(schedule, unit: glucoseUnit, xAxisValues: xAxisValues)
-            targetOverridePoints = ChartPoint.pointsForGlucoseRangeScheduleOverride(schedule, unit: glucoseUnit, xAxisValues: xAxisValues, extendEndDateToChart: true)
-            targetOverrideDurationPoints = ChartPoint.pointsForGlucoseRangeScheduleOverride(schedule, unit: glucoseUnit, xAxisValues: xAxisValues)
+
+            if let override = scheduleOverride, override.isActive() || override.startDate > Date() {
+                targetOverridePoints = ChartPoint.pointsForGlucoseRangeScheduleOverride(override, unit: glucoseUnit, xAxisValues: xAxisValues, extendEndDateToChart: true)
+                targetOverrideDurationPoints = ChartPoint.pointsForGlucoseRangeScheduleOverride(override, unit: glucoseUnit, xAxisValues: xAxisValues)
+            } else {
+                targetOverridePoints = []
+                targetOverrideDurationPoints = []
+            }
         }
 
         let points = glucosePoints + predictedGlucosePoints + targetGlucosePoints + targetOverridePoints + glucoseDisplayRangePoints

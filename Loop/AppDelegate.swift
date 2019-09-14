@@ -24,9 +24,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         return window?.rootViewController as? RootNavigationController
     }
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
-        window?.tintColor = UIColor.tintColor
-
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         NotificationManager.authorize(delegate: self)
 
         log.info(#function)
@@ -56,7 +54,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 
     // MARK: - Continuity
 
-    func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([Any]?) -> Void) -> Bool {
+    func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
 
         if #available(iOS 12.0, *) {
             if userActivity.activityType == NewCarbEntryIntent.className {

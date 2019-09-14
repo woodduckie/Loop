@@ -48,7 +48,8 @@ class StatusViewController: UIViewController, NCWidgetProviding {
                 settings.labelsToAxisSpacingX = 6
                 settings.clipInnerFrame = false
                 return settings
-            }()
+            }(),
+            traitCollection: traitCollection
         )
 
         charts.predictedGlucose.glucoseDisplayRange = HKQuantity(unit: .milligramsPerDeciliter, doubleValue: 100)...HKQuantity(unit: .milligramsPerDeciliter, doubleValue: 175)
@@ -80,14 +81,25 @@ class StatusViewController: UIViewController, NCWidgetProviding {
         basalProfile: defaults?.basalRateSchedule,
         insulinSensitivitySchedule: defaults?.insulinSensitivitySchedule
     )
+    
+    private var pluginManager: PluginManager = {
+        let containingAppFrameworksURL = Bundle.main.privateFrameworksURL?.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Frameworks")
+        return PluginManager(pluginsURL: containingAppFrameworksURL)
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
         subtitleLabel.isHidden = true
-        subtitleLabel.textColor = .subtitleLabelColor
+        if #available(iOSApplicationExtension 13.0, iOS 13.0, *) {
+            subtitleLabel.textColor = .secondaryLabel
+            insulinLabel.textColor = .secondaryLabel
+        } else {
+            subtitleLabel.textColor = .subtitleLabelColor
+            insulinLabel.textColor = .subtitleLabelColor
+        }
+
         insulinLabel.isHidden = true
-        insulinLabel.textColor = .subtitleLabelColor
 
         let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(openLoopApp(_:)))
         view.addGestureRecognizer(tapGestureRecognizer)
@@ -100,10 +112,12 @@ class StatusViewController: UIViewController, NCWidgetProviding {
         extensionContext?.widgetLargestAvailableDisplayMode = .expanded
 
         switch extensionContext?.widgetActiveDisplayMode ?? .compact {
-        case .compact:
-            glucoseChartContentView.isHidden = true
         case .expanded:
             glucoseChartContentView.isHidden = false
+        case .compact:
+            fallthrough
+        @unknown default:
+            glucoseChartContentView.isHidden = true
         }
 
         observers = [
@@ -121,10 +135,12 @@ class StatusViewController: UIViewController, NCWidgetProviding {
         let compactHeight = hudView.systemLayoutSizeFitting(maxSize).height + subtitleLabel.systemLayoutSizeFitting(maxSize).height
 
         switch activeDisplayMode {
-        case .compact:
-            preferredContentSize = CGSize(width: maxSize.width, height: compactHeight)
         case .expanded:
             preferredContentSize = CGSize(width: maxSize.width, height: compactHeight + 100)
+        case .compact:
+            fallthrough
+        @unknown default:
+            preferredContentSize = CGSize(width: maxSize.width, height: compactHeight)
         }
     }
 
@@ -135,6 +151,10 @@ class StatusViewController: UIViewController, NCWidgetProviding {
             (UIViewControllerTransitionCoordinatorContext) -> Void in
             self.glucoseChartContentView.isHidden = self.extensionContext?.widgetActiveDisplayMode != .expanded
         })
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        charts.traitCollection = traitCollection
     }
     
     @objc private func openLoopApp(_: Any) {
@@ -189,7 +209,7 @@ class StatusViewController: UIViewController, NCWidgetProviding {
             let hudViews: [BaseHUDView]
 
             if let hudViewsContext = context.pumpManagerHUDViewsContext,
-                let contextHUDViews = hudViewsContext.hudViews
+                let contextHUDViews = PumpManagerHUDViewsFromRawValue(hudViewsContext.pumpManagerHUDViewsRawValue, pluginManager: self.pluginManager)
             {
                 hudViews = contextHUDViews
             } else {
@@ -275,10 +295,12 @@ class StatusViewController: UIViewController, NCWidgetProviding {
         }
 
         switch extensionContext?.widgetActiveDisplayMode ?? .compact {
-        case .compact:
-            glucoseChartContentView.isHidden = true
         case .expanded:
             glucoseChartContentView.isHidden = false
+        case .compact:
+            fallthrough
+        @unknown default:
+            glucoseChartContentView.isHidden = true
         }
 
         // Right now we always act as if there's new data.
